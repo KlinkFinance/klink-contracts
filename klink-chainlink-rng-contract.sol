@@ -298,11 +298,15 @@ contract RandomNumberConsumer is VRFConsumerBase, Ownable {
     uint256 private constant MAX = ~uint256(0);
     uint256 public requestNumber;
 
+     event AddHash(string _fileHash, string _ipfsUrl ,uint256 _requestNumber);
+     event GetRandomNumber(string _fileHash, string _ipfsUrl ,uint256 _requestNumber);
+
     struct Random {
         bytes32 request;
         uint256 randomValue;
         uint256 timeStamp;
         string fileHash;
+        string ipfsUrl;
         bool requested;
     }
 
@@ -311,24 +315,23 @@ contract RandomNumberConsumer is VRFConsumerBase, Ownable {
     /**
      * Constructor inherits VRFConsumerBase
      *
-     * Network: Kovan
-     * Chainlink VRF Coordinator address: 0xdD3782915140c8f3b190B5D67eAc6dc5760C46E9
-     * LINK token address:                0xa36085F69e2889c224210F603D836748e7dC0088
-     * Key Hash: 0x6c3699283bda56ad74f6b855546325b68d482e983852a7a82979cc4807b641f4
-     */
+    */
     constructor()
         public
         VRFConsumerBase(
-            0x8C7382F9D8f56b33781fE506E897a4F1e2d17255, // VRF Coordinator // 0x3d2341ADb2D31f1c5530cDC622016af293177AE0 - Polygon Mainnet
-            0x326C977E6efc84E512bB9C30f76E30c160eD06FB // LINK Token //0xb0897686c545045aFc77CF20eC7A532E3120E0F1 - Polygon Mainnet
+            0xa555fC018435bef5A13C6c6870a9d4C11DEC329C, // VRF Coordinator // 0x3d2341ADb2D31f1c5530cDC622016af293177AE0 - Polygon Mainnet
+            0x84b9B910527Ad5C03A9Ca831909E21e236EA7b06 // LINK Token //0xb0897686c545045aFc77CF20eC7A532E3120E0F1 - Polygon Mainnet
         )
         Ownable()
     {
-        keyHash = 0x6e75b569a01ef56d18cab6a8e71e6600d6ce853834d4a5748b720d06f878b3a4; // Key Hash // 0xf86195cf7690c55907b2b611ebb7343a6f649bff128701cc542f0569e2c549da //Polygon Mainnet
+        keyHash = 0xcaf3c3727e033261d383b315559476f48034c13b18f8cafed4d871abe5049186; // Key Hash // 0xf86195cf7690c55907b2b611ebb7343a6f649bff128701cc542f0569e2c549da //Polygon Mainnet
         fee = 0.1 * 10**18; // 0.1 LINK //0.2 for Mainnet
     }
 
-    function addHash(string memory _fileHash)
+    /*
+    Add file hash  and ipfs url to generate reuest number 
+    */ 
+    function addHash(string memory _fileHash, string memory _ipfsUrl)
         public
         onlyOwner
         returns (uint256)
@@ -341,6 +344,8 @@ contract RandomNumberConsumer is VRFConsumerBase, Ownable {
                 "Wait for previous random value"
             );
         random[requestNumber].fileHash = _fileHash;
+        random[requestNumber].ipfsUrl = _ipfsUrl;
+        emit AddHash(_fileHash,_ipfsUrl,requestNumber);
         return (requestNumber);
     }
 
@@ -358,6 +363,7 @@ contract RandomNumberConsumer is VRFConsumerBase, Ownable {
             "Empty filehash"
         );
         random[requestNumber].requested = true;
+        emit GetRandomNumber(random[requestNumber].fileHash,random[requestNumber].ipfsUrl,requestNumber);
         return requestRandomness(keyHash, fee);
     }
 
@@ -373,12 +379,7 @@ contract RandomNumberConsumer is VRFConsumerBase, Ownable {
         random[requestNumber].timeStamp = block.timestamp;
     }
 
-    /**
-     * Withdraw LINK from this contract
-     *
-     * DO NOT USE THIS IN PRODUCTION AS IT CAN BE CALLED BY ANY ADDRESS.
-     * THIS IS PURELY FOR EXAMPLE PURPOSES.
-     */
+   
     function withdrawLink() external onlyOwner {
         require(
             LINK.transfer(msg.sender, LINK.balanceOf(address(this))),
