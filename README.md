@@ -10,8 +10,6 @@ https://docs.chain.link/vrf/v1/supported-networks
 ### INTRODUCTION
 
 The Klink Smart contracts has a RNG smart contract using chainlink .
-### Constants
-- Unlock interval 30 days
 
 ### Deployment Needs
 - RNG Contract 
@@ -26,7 +24,7 @@ The Klink Smart contracts has a RNG smart contract using chainlink .
 ### How to use
 
 - The smart contract should be topped up with LINK tokens, which is a simple token transfer to the smart contract by any wallet address.
-- The owner of the smart contract will then be able to allocate tokens to any of the beneficiaries, with the restriction that the allocation should be limited to the amount of tokens held by the smart contract.
+
     
 
 
