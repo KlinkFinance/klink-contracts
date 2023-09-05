@@ -25,7 +25,9 @@ The Klink Smart contracts has a RNG smart contract using chainlink .
 
 - The smart contract should be topped up with LINK tokens, which is a simple token transfer to the smart contract by any wallet address.
 
-    
+### DEPLOYED CONTRACT 
+- BSC MAINNET:0x87C6f68e831EfEDaC5c971BA32ccCD144bC13fF1
+
 
 
 ### TEST CONTRACT
