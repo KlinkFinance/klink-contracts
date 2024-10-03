@@ -67,8 +67,6 @@ npx  truffle test
 https://docs.chain.link/vrf/v1/supported-networks
 
 
-# KLINK SMART CONTRACTS
-
 ### Deployment Needs
 - RNG Contract 
 
