@@ -31,7 +31,7 @@ Upon deployment, the entire initial supply will be minted to the deployer's addr
 
 Functions
 
-Constructor
+
 
 ``` 
 constructor(
