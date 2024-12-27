@@ -1,51 +1,78 @@
-# klink-contracts
-This repo is for klink smart contracts
+KlinkToken
 
-# chainlink-doc
-https://docs.chain.link/vrf/v1/supported-networks
+KlinkToken is a customizable ERC20 token smart contract built on the OpenZeppelin framework. It includes additional functionality for minting and burning tokens, all controlled by the contract owner.
 
+Features
 
-# KLINK SMART CONTRACTS
+ERC20 Standard: Implements the widely used ERC20 token standard.
 
-### INTRODUCTION
+Minting: Allows the owner to mint new tokens.
 
-The Klink Smart contracts has a RNG smart contract using chainlink .
+Burning: Supports token burning, both directly by the owner and from specific accounts.
 
-### Deployment Needs
-- RNG Contract 
+Ownership Control: Includes ownership functionality using OpenZeppelin's Ownable contract.
 
-### RNG CONTRACT ACTORS
+Deployment
 
-## OWNER
-- The owner can add file hash and ipfs url.
-- The owner is able to withdraw link tokens .
+The contract requires the following parameters during deployment:
 
+name - The name of the token (e.g., "KlinkToken").
 
-### How to use
+symbol - The symbol of the token (e.g., "KLINK").
 
-- The smart contract should be topped up with LINK tokens, which is a simple token transfer to the smart contract by any wallet address.
+initialSupply - The initial supply of tokens (in smallest units, e.g., wei).
 
-### DEPLOYED CONTRACT 
-- BSC MAINNET:0x87C6f68e831EfEDaC5c971BA32ccCD144bC13fF1
+Upon deployment, the entire initial supply will be minted to the deployer's address.
 
+Functions
 
+Constructor
 
-### TEST CONTRACT
+```constructor(
+    string memory name,
+    string memory symbol,
+    uint256 initialSupply
+)```
 
-## REQUIREMENTS
-- Truffle
-- GANACHE 
+Initializes the contract with a name, symbol, and initial supply of tokens.
 
-## STEPS TO RUN TEST CASES
- 
- - Change the ganache port from truffle-config.js
- - run
+Minting
 
-```shell
-ganache
-npm i
-npx  truffle test
-```
+function mint(address to, uint256 amount) public onlyOwner
 
+Mints new tokens to the specified address. Can only be called by the contract owner.
 
+Burning
+
+Burn from Owner's Account
+
+function burn(uint256 amount) public override onlyOwner
+
+Burns a specified amount of tokens from the owner's account.
+
+Burn from Specific Account
+
+function burnFrom(address account, uint256 amount) public override onlyOwner
+
+Burns a specified amount of tokens from another account, reducing the allowance first.
+
+Token Transfers
+
+function _beforeTokenTransfer(address from, address to, uint256 amount) internal override
+
+A hook that is called before any transfer of tokens, including minting and burning. It can be customized as needed.
+
+Requirements
+
+Solidity version: ^0.8.9
+
+OpenZeppelin Contracts version: 4.9.6
+
+Installation
+
+Install the OpenZeppelin contracts package:
+
+npm install @openzeppelin/contracts
+
+Import the KlinkToken contract into your project and deploy it.
 
