@@ -1,3 +1,8 @@
+
+# Project Title
+
+A brief description of what this project does and who it's for
+
 KlinkToken
 
 KlinkToken is a customizable ERC20 token smart contract built on the OpenZeppelin framework. It includes additional functionality for minting and burning tokens, all controlled by the contract owner.
@@ -28,11 +33,13 @@ Functions
 
 Constructor
 
-```constructor(
+``` 
+constructor(
     string memory name,
     string memory symbol,
     uint256 initialSupply
-)```
+)
+```
 
 Initializes the contract with a name, symbol, and initial supply of tokens.
 
