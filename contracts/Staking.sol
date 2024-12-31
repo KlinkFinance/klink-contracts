@@ -212,6 +212,7 @@ contract klinkStaking is Ownable {
     uint64 public rate;
     uint256 public lockDuration;
     string public name;
+    uint256 public cap;
     uint256 public totalParticipants;
     bool public isStopped;
 
@@ -254,11 +255,12 @@ contract klinkStaking is Ownable {
      *   rate_ rate multiplied by 100
      *   lockduration_ duration in days
      */
-    constructor(
+   constructor(
         string memory name_,
         address tokenAddress_,
         uint64 rate_,
-        uint256 lockDuration_
+        uint256 lockDuration_,
+        uint256 cap_
     ) public Ownable() {
         name = name_;
         require(tokenAddress_ != address(0), "Zero token address");
@@ -267,6 +269,8 @@ contract klinkStaking is Ownable {
         require(rate_ != 0, "Zero interest rate");
         rate = rate_;
         rates[index] = Rates(rate, block.timestamp);
+        require(cap_ > 0, "Cap must be greater than zero");
+        cap = cap_;
     }
 
     /**
@@ -361,6 +365,10 @@ contract klinkStaking is Ownable {
     {
         require(amount > 0, "Can't stake 0 amount");
         require(!isStopped, "Staking paused");
+        require(
+            stakedBalance.add(amount) <= cap,
+            "Staking pool cap reached"
+        );
         return (_stake(msg.sender, amount));
     }
 
