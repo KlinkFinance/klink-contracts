@@ -366,7 +366,7 @@ contract klinkStaking is Ownable {
         require(amount > 0, "Can't stake 0 amount");
         require(!isStopped, "Staking paused");
         require(
-            stakedBalance.add(amount) <= cap,
+            stakedTotal.add(amount) <= cap,
             "Staking pool cap reached"
         );
         return (_stake(msg.sender, amount));
