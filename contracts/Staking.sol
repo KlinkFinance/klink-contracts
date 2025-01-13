@@ -1,3 +1,7 @@
+/**
+ *Submitted for verification at BscScan.com on 2021-08-12
+*/
+
 pragma solidity 0.5.16;
 
 /**
@@ -175,7 +179,7 @@ library SafeERC20 {
 
 pragma solidity 0.5.16;
 
-contract klinkStaking is Ownable {
+contract IDOLocking is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -187,7 +191,6 @@ contract klinkStaking is Ownable {
         uint256 depositTime;
         uint256 endTime;
         uint64 userIndex;
-        uint256 rewards;
         bool paid;
     }
 
@@ -212,9 +215,8 @@ contract klinkStaking is Ownable {
     uint64 public rate;
     uint256 public lockDuration;
     string public name;
-    uint256 public cap;
     uint256 public totalParticipants;
-    bool public isStopped;
+    uint256 public cap;
 
     IERC20 public ERC20Interface;
 
@@ -237,17 +239,6 @@ contract klinkStaking is Ownable {
         uint256 reward_
     );
 
-    event RateAndLockduration(
-        uint64 index,
-        uint64 newRate,
-        uint256 lockDuration,
-        uint256 time
-    );
-
-    event RewardsAdded(uint256 rewards, uint256 time);
-
-    event StakingStopped(bool status, uint256 time);
-
     /**
      *   @param
      *   name_ name of the contract
@@ -255,7 +246,7 @@ contract klinkStaking is Ownable {
      *   rate_ rate multiplied by 100
      *   lockduration_ duration in days
      */
-   constructor(
+    constructor(
         string memory name_,
         address tokenAddress_,
         uint64 rate_,
@@ -290,12 +281,6 @@ contract klinkStaking is Ownable {
         index++;
         rates[index] = Rates(rate_, block.timestamp);
         lockDuration = lockduration_;
-        emit RateAndLockduration(index, rate_, lockduration_, block.timestamp);
-    }
-
-    function changeStakingStatus(bool _status) external onlyOwner {
-        isStopped = _status;
-        emit StakingStopped(_status, block.timestamp);
     }
 
     /**
@@ -306,17 +291,17 @@ contract klinkStaking is Ownable {
      */
     function addReward(uint256 rewardAmount)
         external
-        _realAddress(msg.sender)
         _hasAllowance(msg.sender, rewardAmount)
         returns (bool)
     {
         require(rewardAmount > 0, "Reward must be positive");
-        totalReward = totalReward.add(rewardAmount);
-        rewardBalance = rewardBalance.add(rewardAmount);
+
         if (!_payMe(msg.sender, rewardAmount)) {
             return false;
         }
-        emit RewardsAdded(rewardAmount, block.timestamp);
+
+        totalReward = totalReward.add(rewardAmount);
+        rewardBalance = rewardBalance.add(rewardAmount);
         return true;
     }
 
@@ -333,7 +318,6 @@ contract klinkStaking is Ownable {
             uint256,
             uint256,
             uint256,
-            uint256,
             bool
         )
     {
@@ -343,7 +327,6 @@ contract klinkStaking is Ownable {
                 deposits[user].depositTime,
                 deposits[user].endTime,
                 deposits[user].userIndex,
-                deposits[user].rewards,
                 deposits[user].paid
             );
         }
@@ -356,7 +339,6 @@ contract klinkStaking is Ownable {
      *  @dev to stake 'amount' value of tokens 
      *  once the user has given allowance to the staking contract
      */
-
     function stake(uint256 amount)
         external
         _realAddress(msg.sender)
@@ -364,7 +346,7 @@ contract klinkStaking is Ownable {
         returns (bool)
     {
         require(amount > 0, "Can't stake 0 amount");
-        require(!isStopped, "Staking paused");
+        require(!hasStaked[msg.sender], "Already Staked");
         require(
             stakedTotal.add(amount) <= cap,
             "Staking pool cap reached"
@@ -373,41 +355,25 @@ contract klinkStaking is Ownable {
     }
 
     function _stake(address from, uint256 amount) private returns (bool) {
-        if (!hasStaked[from]) {
-            hasStaked[from] = true;
-
-            deposits[from] = Deposits(
-                amount,
-                block.timestamp,
-                block.timestamp.add((lockDuration.mul(3600))),
-                index,
-                0,
-                false
-            );
-            totalParticipants = totalParticipants.add(1);
-        } else {
-            require(
-                block.timestamp < deposits[from].endTime,
-                "Lock expired, please withdraw and stake again"
-            );
-            uint256 newAmount = deposits[from].depositAmount.add(amount);
-            uint256 rewards = _calculate(from, block.timestamp).add(
-                deposits[from].rewards
-            );
-            deposits[from] = Deposits(
-                newAmount,
-                block.timestamp,
-                block.timestamp.add((lockDuration.mul(3600))),
-                index,
-                rewards,
-                false
-            );
+        if (!_payMe(from, amount)) {
+            return false;
         }
-        stakedBalance = stakedBalance.add(amount);
-        stakedTotal = stakedTotal.add(amount);
-        require(_payMe(from, amount), "Payment failed");
+
+        hasStaked[from] = true;
+
+        deposits[from] = Deposits(
+            amount,
+            block.timestamp,
+            block.timestamp.add((lockDuration.mul(3600))), //lockDuration * 24 * 3600
+            index,
+            false
+        );
+
         emit Staked(tokenAddress, from, amount);
 
+        stakedBalance = stakedBalance.add(amount);
+        stakedTotal = stakedTotal.add(amount);
+        totalParticipants = totalParticipants.add(1);
         return true;
     }
 
@@ -425,10 +391,9 @@ contract klinkStaking is Ownable {
     }
 
     function _withdraw(address from) private returns (bool) {
-        uint256 reward = _calculate(from, deposits[from].endTime);
-        reward = reward.add(deposits[from].rewards);
+        uint256 payOut = _calculate(from);
         uint256 amount = deposits[from].depositAmount;
-
+        uint256 reward = payOut.sub(amount);
         require(reward <= rewardBalance, "Not enough rewards");
 
         stakedBalance = stakedBalance.sub(amount);
@@ -437,7 +402,7 @@ contract klinkStaking is Ownable {
         hasStaked[from] = false;
         totalParticipants = totalParticipants.sub(1);
 
-        if (_payDirect(from, amount.add(reward))) {
+        if (_payDirect(from, payOut)) {
             emit PaidOut(tokenAddress, from, amount, reward);
             return true;
         }
@@ -481,24 +446,26 @@ contract klinkStaking is Ownable {
      * 'depositTime' - time of staking
      */
     function calculate(address from) external view returns (uint256) {
-        return _calculate(from, deposits[from].endTime);
+        return _calculate(from);
     }
 
-    function _calculate(address from, uint256 endTime)
-        private
-        view
-        returns (uint256)
-    {
+    function _calculate(address from) private view returns (uint256) {
         if (!hasStaked[from]) return 0;
-        (uint256 amount, uint256 depositTime, uint64 userIndex) = (
-            deposits[from].depositAmount,
-            deposits[from].depositTime,
-            deposits[from].userIndex
-        );
+        (
+            uint256 amount,
+            uint256 depositTime,
+            uint256 endTime,
+            uint64 userIndex
+        ) = (
+                deposits[from].depositAmount,
+                deposits[from].depositTime,
+                deposits[from].endTime,
+                deposits[from].userIndex
+            );
 
         uint256 time;
         uint256 interest;
-        uint256 _lockduration = deposits[from].endTime.sub(depositTime);
+        uint256 _lockduration = endTime.sub(depositTime);
         for (uint64 i = userIndex; i < index; i++) {
             //loop runs till the latest index/interest rate change
             if (endTime < rates[i + 1].timeStamp) {
@@ -508,8 +475,8 @@ contract klinkStaking is Ownable {
                 time = rates[i + 1].timeStamp.sub(depositTime);
                 interest = amount.mul(rates[i].newInterestRate).mul(time).div(
                     _lockduration.mul(10000)
-                );
-                amount = amount.add(interest);
+                ); //replace with (_lockduration * 10000)
+                amount += interest;
                 depositTime = rates[i + 1].timeStamp;
                 userIndex++;
             }
@@ -522,10 +489,12 @@ contract klinkStaking is Ownable {
             interest = time
                 .mul(amount)
                 .mul(rates[userIndex].newInterestRate)
-                .div(_lockduration.mul(10000));
+                .div(_lockduration.mul(10000)); //replace with (lockduration * 10000)
+
+            amount += interest;
         }
 
-        return (interest);
+        return (amount);
     }
 
     function _payMe(address payer, uint256 amount) private returns (bool) {
