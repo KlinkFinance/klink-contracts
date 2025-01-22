@@ -18,7 +18,8 @@ describe("IDOLocking Contract", function () {
       klinkToken.target,
       123,
       720,
-      ethers.parseEther("100000")
+      ethers.parseEther("100000"),
+      owner.address
     );
   });
 
@@ -100,7 +101,7 @@ describe("IDOLocking Contract", function () {
   it("Should revert if non-owner tries to set rate and lock duration", async function () {
     await expect(
       idoLocking.connect(addr1).setRateAndLockduration(600, 60)
-    ).to.be.revertedWith("Ownable: caller is not the owner");
+    ).to.be.revertedWith("Not the Gnosis Safe");
   });
 
   it("Should allow emergency withdrawal", async function () {
