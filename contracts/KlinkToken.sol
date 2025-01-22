@@ -2,9 +2,9 @@
 pragma solidity ^0.8.9;
 
 // Import OpenZeppelin contracts for ERC20, ERC20Burnable, and Ownable functionality
-import "@openzeppelin/contracts@4.9.6/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts@4.9.6/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin/contracts@4.9.6/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title KlinkToken
