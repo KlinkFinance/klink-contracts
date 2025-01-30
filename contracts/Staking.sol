@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.28;
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+pragma solidity ^0.8.0;
+import {Ownable} from "@openzeppelin/contracts@4.9.6/access/Ownable.sol";
+import {SafeERC20,IERC20} from "@openzeppelin/contracts@4.9.6/token/ERC20/utils/SafeERC20.sol";
 contract IDOLocking is Ownable {
     using SafeERC20 for IERC20;
     /**
@@ -12,6 +12,7 @@ contract IDOLocking is Ownable {
         uint256 depositTime;
         uint256 endTime;
         uint64 userIndex;
+        uint256 rewards;
         bool paid;
     }
     /**
@@ -169,7 +170,6 @@ contract IDOLocking is Ownable {
         returns (bool)
     {
         require(amount > 0, "Can't stake 0 amount");
-        require(!hasStaked[msg.sender], "Already Staked");
         require(
             stakedTotal + amount <= cap,
             "Staking pool cap reached"
@@ -177,21 +177,41 @@ contract IDOLocking is Ownable {
         return (_stake(msg.sender, amount));
     }
     function _stake(address from, uint256 amount) private returns (bool) {
-        if (!_payMe(from, amount)) {
-            return false;
-        }
-        hasStaked[from] = true;
-        deposits[from] = Deposits(
+
+         if (!hasStaked[from]) {
+            hasStaked[from] = true;
+
+            deposits[from] = Deposits(
             amount,
             block.timestamp,
             block.timestamp + (lockDuration * 3600), //lockDuration * 24 * 3600
             index,
+            0,
             false
         );
+            totalParticipants = totalParticipants+1;
+        } else {
+            require(
+                block.timestamp < deposits[from].endTime,
+                "Lock expired, please withdraw and stake again"
+            );
+            uint256 newAmount = deposits[from].depositAmount+ amount;
+            uint256 rewards = _calculate(from, block.timestamp) + deposits[from].rewards;
+            
+        deposits[from] = Deposits(
+            newAmount,
+            block.timestamp,
+            block.timestamp + (lockDuration * 3600), //lockDuration * 24 * 3600
+            index,
+            rewards,
+            false
+        );
+        }
+
         emit Staked(tokenAddress, from, amount);
         stakedBalance = stakedBalance + amount;
         stakedTotal = stakedTotal+amount;
-        totalParticipants = totalParticipants+1;
+        
         return true;
     }
     /**
@@ -207,21 +227,25 @@ contract IDOLocking is Ownable {
         return (_withdraw(msg.sender));
     }
     function _withdraw(address from) private returns (bool) {
-        uint256 payOut = _calculate(from);
+         uint256 reward = _calculate(from, deposits[from].endTime);
+        reward = reward + deposits[from].rewards;
         uint256 amount = deposits[from].depositAmount;
-        uint256 reward = payOut-amount;
+
         require(reward <= rewardBalance, "Not enough rewards");
+
         stakedBalance = stakedBalance - amount;
-        rewardBalance = rewardBalance- reward;
+        rewardBalance = rewardBalance - reward;
         deposits[from].paid = true;
         hasStaked[from] = false;
-        totalParticipants = totalParticipants-1;
-        if (_payDirect(from, payOut)) {
+        totalParticipants = totalParticipants - 1;
+
+        if (_payDirect(from, amount + reward )) {
             emit PaidOut(tokenAddress, from, amount, reward);
             return true;
         }
         return false;
     }
+
     function emergencyWithdraw()
         external
         _realAddress(msg.sender)
@@ -235,6 +259,7 @@ contract IDOLocking is Ownable {
         require(!deposits[msg.sender].paid, "Already paid out");
         return (_emergencyWithdraw(msg.sender));
     }
+
     function _emergencyWithdraw(address from) private returns (bool) {
         uint256 amount = deposits[from].depositAmount;
         stakedBalance = stakedBalance-amount;
@@ -254,44 +279,44 @@ contract IDOLocking is Ownable {
      * 'depositTime' - time of staking
      */
     function calculate(address from) external view returns (uint256) {
-        return _calculate(from);
+        return _calculate(from, deposits[from].endTime);
     }
-    function _calculate(address from) private view returns (uint256) {
+    function _calculate(address from,uint256 endTime) private view returns (uint256) {
         if (!hasStaked[from]) return 0;
-        (
-            uint256 amount,
-            uint256 depositTime,
-            uint256 endTime,
-            uint64 userIndex
-        ) = (
-                deposits[from].depositAmount,
-                deposits[from].depositTime,
-                deposits[from].endTime,
-                deposits[from].userIndex
-            );
+        (uint256 amount, uint256 depositTime, uint64 userIndex) = (
+            deposits[from].depositAmount,
+            deposits[from].depositTime,
+            deposits[from].userIndex
+        );
+
         uint256 time;
         uint256 interest;
-        uint256 _lockduration = endTime-depositTime;
+        uint256 _lockduration = deposits[from].endTime - depositTime;
         for (uint64 i = userIndex; i < index; i++) {
             //loop runs till the latest index/interest rate change
             if (endTime < rates[i + 1].timeStamp) {
                 //if the change occurs after the endTime loop breaks
                 break;
             } else {
-                time = rates[i + 1].timeStamp- depositTime;
-                interest = (amount * rates[i].newInterestRate * time) / (_lockduration * 10000); //replace with (_lockduration * 10000)
-                amount += interest;
+                time = rates[i + 1].timeStamp - depositTime;
+                interest = amount * (rates[i].newInterestRate)*(time)/(
+                    _lockduration * 10000
+                );
+                amount = amount+ interest;
                 depositTime = rates[i + 1].timeStamp;
                 userIndex++;
             }
         }
+
         if (depositTime < endTime) {
             //final calculation for the remaining time period
             time = endTime - depositTime;
+
+            time = endTime - depositTime;
             interest = (time * amount * rates[userIndex].newInterestRate) / (_lockduration * 10000); //replace with (lockduration * 10000)
-            amount += interest;
         }
-        return (amount);
+
+        return (interest);
     }
     function _payMe(address payer, uint256 amount) private returns (bool) {
         return _payTo(payer, address(this), amount);
