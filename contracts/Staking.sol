@@ -174,10 +174,16 @@ contract IDOLocking is Ownable {
             stakedTotal + amount <= cap,
             "Staking pool cap reached"
         );
-        return (_stake(msg.sender, amount));
+
+      return (_stake(msg.sender, amount));
+
     }
     function _stake(address from, uint256 amount) private returns (bool) {
-
+           
+           if (!_payMe(from, amount)) {
+            return false;
+        }
+        
          if (!hasStaked[from]) {
             hasStaked[from] = true;
 
