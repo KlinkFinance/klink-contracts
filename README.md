@@ -66,9 +66,6 @@ This smart contract has been audited by **CertiK** to ensure security and reliab
 
 [CertiK Audit Report](https://skynet.certik.com/projects/klink-finance?auditId=Klink%20Finance#code-security)
 
-## License
-
-This project is licensed under the MIT License.
 
 ## Contribution
 
