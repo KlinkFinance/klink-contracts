@@ -2,18 +2,18 @@
 pragma solidity ^0.8.9;
 
 // Import OpenZeppelin contracts for ERC20, ERC20Burnable, and Ownable functionality
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts@4.9.6/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts@4.9.6/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts@4.9.6/access/Ownable.sol";
 
 /**
  * @title KlinkToken
- * @dev Implementation of the ERC20 token with burn and mint functionality, owned by a deployer
+ * @dev Implementation of the ERC20 token with burn functionality and fixed supply.
  */
 contract KlinkToken is ERC20, ERC20Burnable, Ownable {
 
     /**
-     * @dev Constructor initializes the ERC20 token with a name, symbol, and initial supply.
+     * @dev Constructor initializes the ERC20 token with a name, symbol, and fixed initial supply.
      *      The initial supply is assigned to the deployer of the contract.
      * @param name Name of the token.
      * @param symbol Symbol of the token.
@@ -25,16 +25,6 @@ contract KlinkToken is ERC20, ERC20Burnable, Ownable {
         uint256 initialSupply
     ) ERC20(name, symbol) {
         _mint(msg.sender, initialSupply * 10 ** decimals());
-    }
-
-    /**
-     * @dev Mint new tokens.
-     *      Can only be called by the owner.
-     * @param to Address to receive the newly minted tokens.
-     * @param amount Amount of tokens to mint.
-     */
-    function mint(address to, uint256 amount) public onlyOwner {
-        _mint(to, amount);
     }
 
     /**
@@ -60,8 +50,7 @@ contract KlinkToken is ERC20, ERC20Burnable, Ownable {
 
     /**
      * @dev Hook that is called before any transfer of tokens. This includes
-     *      minting and burning.
-     *      Overrides the `_beforeTokenTransfer` hook in ERC20.
+     *      minting (only during deployment) and burning.
      * @param from Address sending the tokens.
      * @param to Address receiving the tokens.
      * @param amount Amount of tokens being transferred.
