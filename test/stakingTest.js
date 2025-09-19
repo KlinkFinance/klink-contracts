@@ -16,9 +16,9 @@ describe("IDOLocking Contract", function () {
     idoLocking = await IDOLockingFactory.deploy(
       "IDO Pool",
       klinkToken.target,
-      123,
-      720,
-      ethers.parseEther("100000"),
+      123, // 1.23% rate
+      720, // 720 hours (30 days)
+      100000, // 100,000 tokens cap (will be scaled by decimals in contract)
       owner.address
     );
   });
@@ -27,7 +27,7 @@ describe("IDOLocking Contract", function () {
     expect(await idoLocking.name()).to.equal("IDO Pool");
     expect(await idoLocking.tokenAddress()).to.equal(klinkToken.target);
     expect(await idoLocking.rate()).to.equal(123);
-    expect(await idoLocking.lockDuration()).to.equal(720);
+    expect(await idoLocking.lockDuration()).to.equal(720 * 3600); // 720 hours converted to seconds
     expect(await idoLocking.cap()).to.equal(ethers.parseEther("100000"));
   });
 
@@ -45,7 +45,7 @@ describe("IDOLocking Contract", function () {
     await klinkToken.approve(idoLocking.target, ethers.parseEther("100"));
     await idoLocking.stake(ethers.parseEther("100"));
 
-    await ethers.provider.send("evm_increaseTime", [30 * 24 * 3600]);
+    await ethers.provider.send("evm_increaseTime", [720 * 3600]); // 720 hours in seconds
     await ethers.provider.send("evm_mine");
 
     await expect(idoLocking.withdraw()).to.emit(idoLocking, "PaidOut");
@@ -77,7 +77,7 @@ describe("IDOLocking Contract", function () {
     await klinkToken.approve(idoLocking.target, ethers.parseEther("500"));
     await idoLocking.addReward(ethers.parseEther("500"));
 
-    await ethers.provider.send("evm_increaseTime", [30 * 24 * 3600]);
+    await ethers.provider.send("evm_increaseTime", [720 * 3600]); // 720 hours in seconds
     await ethers.provider.send("evm_mine");
 
     await expect(idoLocking.withdraw()).to.emit(idoLocking, "PaidOut");
@@ -95,7 +95,7 @@ describe("IDOLocking Contract", function () {
   it("Should allow owner to set new rate and lock duration", async function () {
     await idoLocking.setRateAndLockduration(600, 60);
     expect(await idoLocking.rate()).to.equal(600);
-    expect(await idoLocking.lockDuration()).to.equal(60);
+    expect(await idoLocking.lockDuration()).to.equal(60 * 3600); // 60 hours converted to seconds
   });
 
   it("Should revert if non-owner tries to set rate and lock duration", async function () {
@@ -108,7 +108,7 @@ describe("IDOLocking Contract", function () {
     await klinkToken.approve(idoLocking.target, ethers.parseEther("100"));
     await idoLocking.stake(ethers.parseEther("100"));
 
-    await ethers.provider.send("evm_increaseTime", [30 * 24 * 3600]);
+    await ethers.provider.send("evm_increaseTime", [720 * 3600]); // 720 hours in seconds
     await ethers.provider.send("evm_mine");
 
     await expect(idoLocking.emergencyWithdraw()).to.emit(idoLocking, "PaidOut");
@@ -122,7 +122,7 @@ describe("IDOLocking Contract", function () {
     const balanceBefore = await klinkToken.balanceOf(owner.address);
     await idoLocking.stake(ethers.parseEther("100"));
 
-    await ethers.provider.send("evm_increaseTime", [30 * 24 * 3600]);
+    await ethers.provider.send("evm_increaseTime", [720 * 3600]); // 720 hours in seconds
     await ethers.provider.send("evm_mine");
 
     await expect(idoLocking.withdraw()).to.emit(idoLocking, "PaidOut");
@@ -145,17 +145,19 @@ describe("IDOLocking Contract", function () {
     );
     await idoLocking.stake(stakeAmount.toString());
 
-    // Simulate time passage (e.g., 30 days)
-    await ethers.provider.send("evm_increaseTime", [Number(30n * 24n * 3600n)]);
+    // Simulate time passage (720 hours = 30 days)
+    await ethers.provider.send("evm_increaseTime", [720 * 3600]); // 720 hours in seconds
     await ethers.provider.send("evm_mine");
 
-    // Calculate expected interest using BigInt, then convert to string for assertion
+    // Calculate expected interest using the contract's formula
     // Interest rate basis points (1.23%)
-    const time = 30; //in days
+    const lockDurationHours = 720; // 720 hours
     const amount = 100; // total amount staked
-    const roi = 123; // intrest without decimals
+    const roi = 123; // interest rate (1.23% = 123 basis points)
 
-    let expectedInterest = ((time * amount * roi) / (time * 10000)).toFixed(6);
+    // Contract formula: (time * amount * rate) / (lockDuration * 10000)
+    // Since we're calculating at the end of lock period, time = lockDuration
+    let expectedInterest = ((lockDurationHours * 3600 * amount * roi) / (lockDurationHours * 3600 * 10000)).toFixed(6);
 
     // Call the contract function to check calculation
     const calculatedAmount = await idoLocking.calculate(owner.address);

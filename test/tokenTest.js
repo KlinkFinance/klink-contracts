@@ -18,10 +18,14 @@ describe("KlinkToken", function () {
     expect(await klinkToken.totalSupply()).to.equal(expectedSupply);
   });
 
-  it("Should mint tokens correctly", async function () {
-    const mintAmount = ethers.parseUnits("100", await klinkToken.decimals());
-    await klinkToken.mint(addr1.address, mintAmount);
-    expect(await klinkToken.balanceOf(addr1.address)).to.equal(mintAmount);
+  it("Should have fixed supply with no mint function", async function () {
+    // Verify that mint function doesn't exist
+    expect(klinkToken.mint).to.be.undefined;
+    
+    // Verify total supply is fixed
+    const totalSupply = await klinkToken.totalSupply();
+    const expectedSupply = ethers.parseUnits("1000", await klinkToken.decimals());
+    expect(totalSupply).to.equal(expectedSupply);
   });
 
   it("Should allow the owner to burn tokens", async function () {
@@ -32,9 +36,9 @@ describe("KlinkToken", function () {
     expect(await klinkToken.balanceOf(owner.address)).to.equal(expectedBalance);
   });
 
-  it("Should prevent non-owners from minting tokens", async function () {
-    const mintAmount = ethers.parseUnits("100", await klinkToken.decimals());
-    await expect(klinkToken.connect(addr1).mint(addr1.address, mintAmount)).to.be.revertedWith("Ownable: caller is not the owner");
+  it("Should prevent non-owners from burning tokens", async function () {
+    const burnAmount = ethers.parseUnits("50", await klinkToken.decimals());
+    await expect(klinkToken.connect(addr1).burn(burnAmount)).to.be.revertedWith("Ownable: caller is not the owner");
   });
 
   it("Should allow the owner to burn tokens from a specific account", async function () {
