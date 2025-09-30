@@ -272,9 +272,7 @@ npx hardhat test test/stakingTest.js
 - Regular security audits for production deployments
 - Comprehensive testing before mainnet deployment
 
-## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🤝 Contributing
 
