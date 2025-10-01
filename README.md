@@ -56,6 +56,25 @@ An enhanced ERC20 token implementation with advanced security features and suppl
 - `mint()`: Mint new tokens (owner only, respects max supply)
 - `burn()`: Burn tokens from owner's balance
 
+#### Timestamp Management Rules:
+
+The `setTransferAllowedTimestamp()` function has specific rules to prevent abuse while allowing necessary adjustments:
+
+| Situation | `_etaCap` | New Time Allowed? | Why |
+|-----------|-----------|-------------------|-----|
+| First pre-launch change to any future time | `0` | ✅ | First change is unrestricted (but not in the past) |
+| Second pre-launch change beyond (original + 1 day) | `set` | ❌ | Exceeds cap ETA! |
+| Second pre-launch change ≤ (original + 1 day) | `set` | ✅ | Within cap |
+| Any change to a past time | `(any)` | ❌ | Fails `require(newTimestamp >= block.timestamp)` |
+| First post-launch change ≤ (original + 1 day) | `becomes set` | ✅ | Cap set lazily; within cap |
+| Any later change > cap | `set` | ❌ | Exceeds cap |
+
+**Key Points:**
+- The first timestamp change sets the `_etaCap` to `original + 1 day`
+- All subsequent changes must be within this cap
+- Past timestamps are never allowed
+- This prevents excessive delays while allowing reasonable adjustments
+
 ### IDOLocking (Staking Contract)
 
 **File**: `contracts/Staking.sol`
