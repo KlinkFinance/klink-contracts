@@ -1,20 +1,21 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity 0.8.30;
 
 // OpenZeppelin v5
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
-/// @title KlinkTokenV2 (Anti-sniper: timestamp gate + whitelist + capped supply)
+/// @title KlinkTokenV2 
 /// @notice
 /// - Blocks transfers until `transferAllowedTimestamp` for non-whitelisted addresses.
 /// - Enforces a hard max supply cap.
 /// - After the first timestamp passes, subsequent timestamp extensions are capped.
 /// - Uses OZ v5's `_update` transfer hook.
+/// - Uses Ownable2Step for safer ownership transfers.
 /// @dev
 /// - `initialSupply` and `maxSupply` are **whole tokens**; contract scales by `10**decimals()`.
 /// - Owner is set via constructor (`initialOwner`), recommended to be a Safe multisig.
-contract KlinkTokenV2 is ERC20, Ownable {
+contract KlinkTokenV2 is ERC20, Ownable2Step {
     /// @notice Public trading start (Unix time). Before this time, only whitelisted can transfer.
     uint256 public transferAllowedTimestamp;
 
@@ -49,7 +50,11 @@ contract KlinkTokenV2 is ERC20, Ownable {
         uint256 initialSupply,
         uint256 maxSupply,
         uint256 startTimestamp
-    ) ERC20(name_, symbol_) Ownable(initialOwner) {
+    )
+        ERC20(name_, symbol_)
+        Ownable(initialOwner) // OZ v5 requires passing initialOwner here
+    {
+        require(initialOwner != address(0), "invalid owner");
         require(startTimestamp >= block.timestamp, "misconfig");
         require(initialSupply <= maxSupply, "initial > max");
 
@@ -90,18 +95,21 @@ contract KlinkTokenV2 is ERC20, Ownable {
 
     /// @notice Add a pre-launch privileged address.
     function addToWhitelist(address user) external onlyOwner {
+        require(user != address(0), "invalid address");
         whitelist[user] = true;
         emit WhitelistAdded(user);
     }
 
     /// @notice Remove a pre-launch privileged address.
     function removeFromWhitelist(address user) external onlyOwner {
+        require(user != address(0), "invalid address");
         whitelist[user] = false;
         emit WhitelistRemoved(user);
     }
 
     /// @notice Owner-only mint (reserve/ops), respecting MAX_SUPPLY.
     function mint(address to, uint256 amount) external onlyOwner {
+        require(to != address(0), "invalid address");
         require(totalSupply() + amount <= MAX_SUPPLY, "cap exceeded");
         _mint(to, amount);
     }
