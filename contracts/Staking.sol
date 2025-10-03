@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.6/contracts/access/Ownable.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.6/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 interface IERC20Decimals {
     function decimals() external view returns (uint8);
@@ -75,7 +75,7 @@ contract IDOLocking is Ownable {
         uint256 lockDuration_,
         uint256 cap_,
         address gnosisSafeAddress_
-    ) Ownable() {
+    ) Ownable(msg.sender) {
         require(tokenAddress_ != address(0), "Zero token address");
         require(rate_ != 0, "Zero interest rate");
         require(cap_ > 0, "Cap must be greater than zero");
