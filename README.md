@@ -60,11 +60,11 @@ Lock Duration = 30 * 24 = 720
 | 180 days         | 6h               | 7                  | 6                     |
 | 270 days         | 9h               | 10                 | 9                     |
 
-## Security & Audit
+<!-- ## Security & Audit
 
 This smart contract has been audited by **CertiK** to ensure security and reliability. You can find the full audit report at:
 
-[CertiK Audit Report](https://skynet.certik.com/projects/klink-finance?auditId=Klink%20Finance#code-security)
+[CertiK Audit Report](https://skynet.certik.com/projects/klink-finance?auditId=Klink%20Finance#code-security) -->
 
 
 ## Contribution
